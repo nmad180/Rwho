@@ -1,0 +1,135 @@
+---
+title: "WHO Tuberculosis Data"
+subtitle: "Homework 1, student number: 23212978"
+author: "Norma Madden"
+date: today
+date-format: long
+format:
+  html:
+    code-fold: true
+    code-tools: true
+    code-line-numbers: true
+    fontsize: 1.2em
+    toc: true
+    toc-title: '**Contents**'
+    embed-resources: true
+    grid:
+      body-width: 800px
+    theme: 
+      - quartz
+execute: 
+  eval: true
+  echo: true     
+---
+
+## Overview
+
+The WHO Global tuberculosis report provides a comprehensive and up-to-date assessment of the TB epidemic, and of progress in prevention, diagnosis and treatment of the disease, at global, regional and country levels. In 2024, 193 countries and areas (out of 215) with more than 99% of the world's population and TB cases reported data. More information on the global TB report can be found here <https://www.who.int/teams/global-programme-on-tuberculosis-and-lung-health/tb-reports/global-tuberculosis-report-2024>
+
+*A subset of data from the WHO Global TB Report is available within the Tidyr R pacakage.*
+
+```{r}
+#| label: load packages
+#| include: false
+
+# load required pacakges
+
+library(tidyr)
+library(tidyverse)
+```
+
+```{r}
+#| label: subset who2 data from tidyr
+#| include: false
+
+# Take WHO TB data set from tidyr package and filter it by year, and select the first 16 variables only
+
+who_tb <- who2 |> 
+  filter(year>2008)|>
+  select(1:16)
+
+```
+
+```{r}
+#| label: reshape data
+#| include: false
+
+# Pivot data so that all age categories are collapsed into on age category column and one column for values
+
+who_tb = pivot_longer(data=who_tb,
+               cols = 3:16,
+               names_to = "age_sex",
+               values_to = "diagnosed",
+               values_drop_na = TRUE
+               )
+
+```
+
+```{r}
+#| label: manipulate data
+#| include: false
+
+# Separate the string which contains age_sex so that it appears as two columns, one for age and one for sex
+
+ who_tb <- who_tb |> separate(age_sex, c("sex", "age"), sep = 4)
+ who_tb <- who_tb |> mutate(sex = replace(sex, sex == 'sp_m', 'male'))
+ who_tb <- who_tb |> mutate(sex = replace(sex, sex == 'sp_f', 'female'))                              
+ who_tb$age <- str_sub(who_tb$age, 2, 5)
+```
+
+# Summary
+
+## Mean Diagnosed per Year
+
+```{r}
+#| label: countries
+#| include: false
+
+# Get overall count of countries included in the this dataset
+
+who_tb |>
+ summarise(n_countries = n_distinct(country))
+
+```
+
+```{r}
+#| label: summary statistics
+#| include: false
+
+# Group data by year and sex and calculate mean number diagnosed with TB
+
+mean_diagnosed <- who_tb |>
+  group_by(year, sex) |>
+  summarise(diagnosed=mean(diagnosed))
+
+```
+
+```{r}
+#| label: table mean diagnosed
+#| echo: false
+
+# Output results of mean number diagnosed by year and sex as a table
+
+knitr::kable(mean_diagnosed, "pipe")
+```
+
+\newpage
+
+# Barplot
+
+-   This bar plot shows the number of people diagnosed with tuberculosis by age category and sex
+-   Data covers 2009 to 2013
+-   212 countries are included in the data set used to generate this plot
+
+## Number Diagnosed by Age & Sex
+
+```{r}
+#| label: Barplot
+#| echo: false
+
+# Create barplot using showing numbers diagnosed per age category and sex
+ ggplot(who_tb, aes(fill=sex, y=diagnosed, x=age)) + 
+   geom_bar(position="dodge", stat="identity")
+
+
+```
